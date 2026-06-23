@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".github/**"
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          CURRENT=$(jq -r '.version' manifest.json)
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
+
+          # If patch is 0, treat this as an intentional major/minor bump — use as-is.
+          # Otherwise, auto-increment the patch on every commit.
+          if [ "$PATCH" -eq 0 ]; then
+            SEMVER="${MAJOR}.${MINOR}.${PATCH}"
+            echo "Intentional version bump detected — using ${SEMVER} as-is"
+          else
+            SEMVER="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            echo "Auto-incrementing patch: ${CURRENT} → ${SEMVER}"
+          fi
+
+          echo "semver=${SEMVER}" >> $GITHUB_OUTPUT
+          echo "tag=v${SEMVER}"   >> $GITHUB_OUTPUT
+
+      - name: Update manifest.json
+        run: |
+          jq --arg v "${{ steps.version.outputs.semver }}" '.version = $v' manifest.json \
+            > manifest.tmp.json && mv manifest.tmp.json manifest.json
+          echo "manifest.json → $(jq -r '.version' manifest.json)"
+
+      - name: Commit & tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          # [skip ci] prevents this commit from re-triggering the workflow
+          git commit -m "chore: release ${{ steps.version.outputs.tag }} [skip ci]"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin HEAD:main --follow-tags
+
+      - name: Build zip
+        run: |
+          zip -r "DeUTC-${{ steps.version.outputs.tag }}.zip" . \
+            --exclude ".git/*"        \
+            --exclude ".github/*"     \
+            --exclude "*.md"          \
+            --exclude "LICENSE"       \
+            --exclude "icons/icon-source.svg"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: DeUTC ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: DeUTC-${{ steps.version.outputs.tag }}.zip

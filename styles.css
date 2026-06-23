@@ -1,0 +1,32 @@
+/**
+ * DeUTC — styles.css
+ * Styles for converted timestamp elements.
+ * The actual converted value is rendered via `::after` using `data-deutc-time`.
+ */
+
+.utc-converted,
+.rel-converted {
+  border-bottom: 1px dashed #6b778c;
+  border-radius: 3px;
+  padding: 0 3px;
+  cursor: help;
+  background-color: rgba(222, 235, 255, 0.4);
+  transition: background-color 0.2s ease;
+}
+
+.utc-converted:hover,
+.rel-converted:hover {
+  background-color: rgba(222, 235, 255, 0.8);
+}
+
+.utc-converted::after,
+.rel-converted::after {
+  content: "↳ " attr(data-deutc-time);
+  display: block;
+  margin-top: 2px;
+  font-size: 0.9em;
+  line-height: 1.2;
+  color: inherit;
+  font-weight: inherit;
+  opacity: 0.85;
+}
