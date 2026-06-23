@@ -5,9 +5,17 @@
   "description": "Converts UTC timestamps and relative durations on any status page into your local timezone. No more mental math during an incident.",
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["detectors.js", "walker.js", "content.js"],
-      "css": ["styles.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "detectors.js",
+        "walker.js",
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],
